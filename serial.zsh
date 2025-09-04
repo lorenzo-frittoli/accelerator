@@ -1,4 +1,1 @@
-PORT="/dev/ttyACM0"  # Change this to your port
-BAUD="9600"
-
-microcom -p $PORT -s $BAUD
+arduino-cli monitor --port $PORT --config $BAUD -b $FQBN

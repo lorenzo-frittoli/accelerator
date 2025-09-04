@@ -1,33 +1,46 @@
-#include <Arduino.h>
 #include "RailSwitch.h"
+#include <Arduino.h>
 
-void RailSwitch::moveMotor(int numberOfSteps, int stepsDeltaTime, Direction dir) {
+void RailSwitch::changeDirection(Direction newDir) {
+  switch (newDir) {
+  case Direction::FORWARDS:
+    stepper.setSpeed(moveSpeed);
+    stepper.enableOutputs();
+    break;
+  case Direction::BACKWARDS:
+    stepper.setSpeed(-moveSpeed);
+    stepper.enableOutputs();
+    break;
+  case Direction::STILL:
+    stepper.setSpeed(0);
+    stepper.disableOutputs();
+    break;
+  }
+  direction = newDir;
+}
+
+void RailSwitch::update() {
   // Set direction
-  byte dirValue;
-  switch (dir) {
-    case Direction::FORWARDS:
-      dirValue = 1;
-      break;
-    case Direction::BACKWARDS:
-      dirValue = 0;
-      break;
+  switch (direction) {
+  case Direction::FORWARDS:
+    if (stepper.currentPosition() >= stepsNumber) {
+      changeDirection(Direction::STILL);
+      return;
+    }
+    stepper.setSpeed(moveSpeed);
+    break;
+  case Direction::BACKWARDS:
+    if (stepper.currentPosition() <= 0) {
+      changeDirection(Direction::STILL);
+      return;
+    }
+    break;
+  case Direction::STILL:
+    return;
   }
-  digitalWrite(dirPin, dirValue);
-
-  // Do the stepping
-  for (int i = 0; i < numberOfSteps; i++) {
-    digitalWrite(stepPin, HIGH);
-    delayMicroseconds(stepsDeltaTime);
-    digitalWrite(stepPin, LOW);
-    delayMicroseconds(stepsDeltaTime);
-  }
+  stepper.runSpeed();
 }
 
-void RailSwitch::closeChamber() {
-  moveMotor(railStepsLength, stepsDeltaTime, Direction::FORWARDS);
-}
+void RailSwitch::closeChamber() { changeDirection(Direction::FORWARDS); }
 
-void RailSwitch::openChamber() {
-  moveMotor(railStepsLength, stepsDeltaTime, Direction::BACKWARDS);
-}
-
+void RailSwitch::openChamber() { changeDirection(Direction::BACKWARDS); }
